@@ -1,0 +1,41 @@
+{
+  "name": "mern-electron-calculator",
+  "version": "1.0.0",
+  "description": "A small calculator built with MERN (using SQLite instead of MongoDB) + Electron",
+  "author": "Developer",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --dir",
+    "dist-installer": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.example.calculator",
+    "productName": "MERN Calculator",
+    "files": [
+      "electron/**",
+      "client/**",
+      "server/**",
+      "node_modules/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "oneClick": false
+    }
+  }
+}

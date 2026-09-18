@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MERN + Electron Calculator</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #1e1e2f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  .calculator {
+    background: #2b2b3d;
+    border-radius: 16px;
+    padding: 20px;
+    width: 300px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .display {
+    background: #14141f;
+    color: #fff;
+    font-size: 2rem;
+    text-align: right;
+    padding: 20px 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    min-height: 40px;
+    word-break: break-all;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  button {
+    padding: 18px 0;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #3a3a52;
+    color: #fff;
+    transition: background 0.15s;
+  }
+  button:hover { background: #4a4a68; }
+  button.operator { background: #e67e22; }
+  button.operator:hover { background: #f39c12; }
+  button.equals { background: #27ae60; grid-column: span 2; }
+  button.equals:hover { background: #2ecc71; }
+  button.clear { background: #c0392b; }
+  button.clear:hover { background: #e74c3c; }
+  .status {
+    color: #888;
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+function Calculator() {
+  const [display, setDisplay] = useState('0');
+  const [firstNum, setFirstNum] = useState(null);
+  const [operator, setOperator] = useState(null);
+  const [status, setStatus] = useState('Ready');
+
+  const pressNumber = (n) => {
+    setDisplay((prev) => (prev === '0' ? String(n) : prev + n));
+  };
+
+  const pressOperator = (op) => {
+    setFirstNum(parseFloat(display));
+    setOperator(op);
+    setDisplay('0');
+  };
+
+  const clear = () => {
+    setDisplay('0');
+    setFirstNum(null);
+    setOperator(null);
+    setStatus('Ready');
+  };
+
+  // This is the MERN part: instead of calculating in the browser,
+  // we send the numbers to our Express backend, which does the math
+  // and saves the calculation to MongoDB.
+  const pressEquals = async () => {
+    if (firstNum === null || operator === null) return;
+    const secondNum = parseFloat(display);
+    setStatus('Calculating...');
+    try {
+      const res = await fetch('http://localhost:5000/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ num1: firstNum, num2: secondNum, operator }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setDisplay('Error');
+        setStatus(data.error);
+      } else {
+        setDisplay(String(data.result));
+        setStatus('Saved to history');
+      }
+    } catch (err) {
+      setStatus('Server not reachable — is the backend running?');
+    }
+    setFirstNum(null);
+    setOperator(null);
+  };
+
+  const buttons = [
+    ['7', '8', '9', '/'],
+    ['4', '5', '6', '*'],
+    ['1', '2', '3', '-'],
+    ['0', 'C', '=', '+'],
+  ];
+
+  return (
+    <div className="calculator">
+      <div className="display">{display}</div>
+      <div className="grid">
+        {buttons.flat().map((b, i) => {
+          if (b === 'C') return <button key={i} className="clear" onClick={clear}>C</button>;
+          if (b === '=') return <button key={i} className="equals" onClick={pressEquals}>=</button>;
+          if ('+-*/'.includes(b)) return <button key={i} className="operator" onClick={() => pressOperator(b)}>{b}</button>;
+          return <button key={i} onClick={() => pressNumber(b)}>{b}</button>;
+        })}
+      </div>
+      <div className="status">{status}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Calculator />);
+</script>
+</body>
+</html>
